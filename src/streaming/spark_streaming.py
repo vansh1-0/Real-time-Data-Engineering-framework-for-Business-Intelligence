@@ -6,7 +6,7 @@ Reads from Kafka topic 'market-prices' and processes stock data
 import os
 import logging
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col, to_timestamp
+from pyspark.sql.functions import from_json, col, to_timestamp, window, avg, sum as sum_col
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType, TimestampType
 
 # Configure logging
@@ -101,9 +101,27 @@ def process_stream(df, schema):
             "timestamp",
             to_timestamp(col("timestamp"))
         )
-        
-        logger.info("Stream processing pipeline configured")
-        return parsed_df
+
+        # Watermark and windowed aggregations for KPI metrics
+        kpi_df = parsed_df.withWatermark("timestamp", "2 minutes") \
+            .groupBy(
+                col("symbol"),
+                window(col("timestamp"), "5 minutes")
+            ) \
+            .agg(
+                avg(col("close")).alias("avg_close"),
+                sum_col(col("volume")).alias("total_volume")
+            ) \
+            .select(
+                col("symbol"),
+                col("window.start").alias("window_start"),
+                col("window.end").alias("window_end"),
+                col("avg_close"),
+                col("total_volume")
+            )
+
+        logger.info("KPI aggregation pipeline configured")
+        return kpi_df
     except Exception as e:
         logger.error(f"Failed to process stream: {e}")
         raise
@@ -112,16 +130,15 @@ def process_stream(df, schema):
 def write_to_console(df):
     """Write the streaming data to console for testing"""
     try:
-        # Use memory sink for testing without checkpoints on Windows
         query = df.writeStream \
-            .outputMode("append") \
-            .format("memory") \
-            .queryName("market_data") \
+            .outputMode("update") \
+            .format("console") \
+            .option("truncate", "false") \
+            .option("numRows", 50) \
             .trigger(processingTime='10 seconds') \
             .start()
-        
-        logger.info("Streaming to memory started - query name: market_data")
-        logger.info("To view data, run: spark.sql('SELECT * FROM market_data').show()")
+
+        logger.info("Streaming to console started")
         return query
     except Exception as e:
         logger.error(f"Failed to write stream: {e}")
@@ -147,27 +164,14 @@ def main():
         # Process the stream
         processed_stream = process_stream(kafka_stream, schema)
         
-        # Write to memory for testing
+        # Write to console for testing
         query = write_to_console(processed_stream)
         
         logger.info("Streaming query is running. Press Ctrl+C to stop.")
         logger.info("Waiting for data from Kafka...")
         
-        # Periodically display data from memory table
-        import time
-        while True:
-            time.sleep(15)
-            try:
-                df = spark.sql("SELECT * FROM market_data ORDER BY timestamp DESC LIMIT 10")
-                if df.count() > 0:
-                    logger.info("\n" + "=" * 70)
-                    logger.info("Latest Market Data:")
-                    logger.info("=" * 70)
-                    df.show(truncate=False)
-                else:
-                    logger.info("Waiting for data...")
-            except Exception as e:
-                logger.warning(f"Could not display data: {e}")
+        # Await termination
+        query.awaitTermination()
         
     except KeyboardInterrupt:
         logger.info("Streaming job interrupted by user")
