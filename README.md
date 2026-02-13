@@ -1,7 +1,7 @@
 # Real-Time Data Engineering Framework for Business Intelligence
 
 ## Overview
-Builds an end-to-end real-time data pipeline for financial market data: ingest OHLCV ticks, stream through Kafka, process with Spark Structured Streaming, persist to PostgreSQL, and visualize live KPIs in Superset or Grafana. Designed as an academic prototype using only free, open-source components.
+Builds an end-to-end real-time data pipeline for financial market data: ingest OHLCV ticks, stream through Kafka, process with Python stream consumer, persist to PostgreSQL, and visualize live KPIs in Grafana. Designed as an academic prototype using only free, open-source components.
 
 ## Objectives
 - Ingest near real-time financial data continuously (Yahoo Finance via `yfinance`)
@@ -16,9 +16,9 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 ## Architecture (conceptual)
 1) Fetch minute-level OHLCV data from Yahoo Finance using `yfinance`
 2) Publish JSON events to a Kafka topic (producer)
-3) Consume the stream in Spark Structured Streaming, validate/transform, and compute KPIs
+3) Consume the stream with Python consumer, apply 5-minute windowing, and compute KPIs
 4) Write curated results to PostgreSQL tables
-5) Connect Superset or Grafana to PostgreSQL for live dashboards
+5) Connect Grafana to PostgreSQL for live dashboards
 
 ## Data Source
 - Provider: Yahoo Finance
@@ -29,9 +29,9 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 ## Technology Stack
 - Language: Python
 - Streaming bus: Apache Kafka
-- Stream processing: Apache Spark Structured Streaming
+- Stream processing: Python Consumer (kafka-python)
 - Storage: PostgreSQL
-- Visualization: Apache Superset or Grafana
+- Visualization: Grafana
 - Data source library: `yfinance`
 
 ## Key KPIs
@@ -47,12 +47,12 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 ├── src/
 │   ├── producer/           # Kafka producer that fetches via yfinance
 │   ├── streaming/          # Spark Structured Streaming jobs
-│   ├── dashboards/         # BI configs/SQL (Superset or Grafana)
+│   ├── dashboards/         # BI configs/SQL (Grafana)
 │   └── utils/              # Shared helpers (schemas, logging, configs)
 ├── configs/
 │   └── env.example         # Copy to .env with your secrets
 ├── notebooks/              # Exploration or KPI prototypes
-├── docker-compose.yml      # Optional: Kafka, Zookeeper, Postgres, Superset
+├── docker-compose.yml      # Kafka, Zookeeper, Postgres, Grafana orchestration
 └── README.md
 ```
 
@@ -62,7 +62,7 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 - Apache Kafka (local or Docker)
 - Apache Spark 3.x (with Structured Streaming)
 - PostgreSQL 14+
-- Superset or Grafana
+- Grafana
 - Git and PowerShell (Windows)
 
 ## Quick Start (local, PowerShell)
@@ -97,7 +97,7 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 4) Start infrastructure
 - Kafka/Zookeeper: start your local services or a Docker stack
 - PostgreSQL: ensure the database and user above exist
-- Superset/Grafana: run locally or via Docker and connect to PostgreSQL
+- Grafana: runs via Docker and connects to PostgreSQL
 
 5) Create Kafka topic (example)
 	```powershell
@@ -122,8 +122,9 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 	```
 
 8) Visualize
-- Point Superset/Grafana to PostgreSQL
-- Build dashboards for the KPIs listed above (price trend, volume, highs/lows, moving averages, gainers/losers)
+- Grafana will auto-connect to PostgreSQL
+- Build dashboards for the KPIs listed above (price trend, volume, moving averages)
+- Use `open_grafana.bat` to launch dashboard or visit http://localhost:3000
 
 ## Data Model (example)
 - `raw_ticks` (optional landing): symbol, ts, open, high, low, close, volume
