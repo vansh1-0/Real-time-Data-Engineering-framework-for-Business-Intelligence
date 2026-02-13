@@ -45,6 +45,18 @@ services:
     networks:
       - data-pipeline-network
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - data-pipeline-network
+    depends_on:
+      - postgres
+
 networks:
   data-pipeline-network:
     driver: bridge
