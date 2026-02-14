@@ -126,6 +126,107 @@ Traditional BI stacks are batch-oriented, delaying insights. Modern teams need l
 - Build dashboards for the KPIs listed above (price trend, volume, moving averages)
 - Use `open_grafana.bat` to launch dashboard or visit http://localhost:3000
 
+## Power BI Integration
+
+### Adding PostgreSQL Data Source to Power BI
+
+Power BI Desktop provides a native PostgreSQL connector that allows you to visualize KPI data without writing any code.
+
+#### Prerequisites
+- Power BI Desktop installed on your machine
+- PostgreSQL database running with KPI data populated
+- Consumer process actively writing data
+
+#### Step-by-Step Guide
+
+**1. Open Power BI Desktop**
+- Launch Power BI Desktop application
+- Click on "Get Data" in the Home ribbon
+
+**2. Connect to PostgreSQL**
+- In the "Get Data" dialog, search for and select **"PostgreSQL database"**
+- Click "Connect"
+
+**3. Enter Connection Details**
+
+In the PostgreSQL database dialog, enter:
+
+| Field | Value |
+|-------|-------|
+| **Server** | `localhost` |
+| **Database** | `bi_realtime` |
+| **Data Connectivity Mode** | `Import` (recommended for better performance) |
+
+Then click **"Advanced options"** and add:
+
+| Field | Value |
+|-------|-------|
+| **Username** | `bi_user` |
+| **Password** | `bi_password` |
+
+**4. Load Data**
+- Click **"OK"** to connect to the database
+- Select the **`kpi_market_prices`** table from the Navigator
+- Click **"Load"** to import the data into Power BI
+
+#### Creating Visualizations (No Coding Required)
+
+Once data is loaded, create KPI dashboards using Power BI's drag-and-drop interface:
+
+**Example 1: Price Trend Line Chart**
+- Drag `window_start` → X-axis
+- Drag `avg_close`, `min_close`, `max_close` → Y-axis
+- Drag `symbol` → Legend
+- Visualization type: Line Chart
+
+**Example 2: Volume Comparison Bar Chart**
+- Drag `symbol` → X-axis
+- Drag `total_volume` → Y-axis
+- Visualization type: Clustered Bar Chart
+
+**Example 3: KPI Card (Current Metric)**
+- Drag `avg_close` → Values
+- Drag `symbol` → Category
+- Visualization type: Card or KPI
+
+**Example 4: Volatility Gauge Chart**
+- Drag `price_volatility` → Value
+- Set minimum/maximum target values
+- Visualization type: Gauge Chart
+
+**Example 5: Detailed Data Table**
+- Add all relevant columns: symbol, window_start, avg_close, min_close, max_close, vwap, price_volatility, total_volume, trade_count
+- Visualization type: Table
+
+#### Data Refresh in Power BI
+
+**Automatic Refresh:**
+1. Go to **"Home"** → **"Refresh"** (or press F5)
+2. To set scheduled refresh:
+   - Go to the **"Queries"** pane
+   - Right-click `kpi_market_prices` → **"Refresh"**
+   - Set refresh frequency (requires Power BI Premium or Gateway)
+
+**Manual Refresh:**
+- Click the **"Refresh"** button in the Home ribbon each time you want to pull the latest data
+
+#### Tips for Better Visualizations
+
+- **Filter by Time**: Add `window_start` to Filters for date-range analysis
+- **Slicer Filters**: Create dropdown filters for `symbol` and date ranges
+- **Conditional Formatting**: Color-code volatility (red = high, green = low)
+- **Tooltips**: Add multiple metrics to data point tooltips for context
+- **Dashboard Layout**: Combine 4-6 visualizations on one page for holistic view
+
+#### Troubleshooting Power BI Connection
+
+| Issue | Solution |
+|-------|----------|
+| "Cannot connect to PostgreSQL" | Verify PostgreSQL is running and credentials are correct |
+| **Empty table shown** | Ensure producer/consumer are running and have populated the database. Run `SELECT COUNT(*) FROM kpi_market_prices;` in PostgreSQL to check. |
+| **Slow performance** | Switch to "DirectQuery" mode instead of "Import" for real-time data (requires more server resources) |
+| **Data not refreshing** | Manually refresh or set up scheduled refresh with a Power BI Gateway |
+
 ## Data Model (example)
 - `raw_ticks` (optional landing): symbol, ts, open, high, low, close, volume
 - `fact_prices`: symbol, ts_minute, open, high, low, close, volume, ma_5, ma_20
