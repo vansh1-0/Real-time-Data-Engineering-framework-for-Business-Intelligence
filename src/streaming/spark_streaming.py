@@ -25,7 +25,8 @@ def create_spark_session():
     """Create and return a SparkSession"""
     try:
         # Set Java options for compatibility with newer Java versions
-        os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0 pyspark-shell'
+        # Set Java options for compatibility with newer Java versions
+        os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0 pyspark-shell'
         
         # Windows workaround: Set HADOOP_HOME and disable native IO
         os.environ['HADOOP_HOME'] = 'C:\\hadoop'
@@ -35,10 +36,10 @@ def create_spark_session():
             .master("local[*]") \
             .config("spark.streaming.stopGracefullyOnShutdown", "true") \
             .config("spark.sql.streaming.schemaInference", "true") \
-            .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.13:4.0.0") \
+            .config("spark.jars.packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0") \
             .config("spark.sql.adaptive.enabled", "true") \
-            .config("spark.driver.extraJavaOptions", "-Djava.security.manager=allow -Djava.io.tmpdir=C:/temp") \
-            .config("spark.executor.extraJavaOptions", "-Djava.security.manager=allow -Djava.io.tmpdir=C:/temp") \
+            .config("spark.driver.extraJavaOptions", "-Djava.security.manager=allow -Djava.io.tmpdir=C:\\temp") \
+            .config("spark.executor.extraJavaOptions", "-Djava.security.manager=allow -Djava.io.tmpdir=C:\\temp") \
             .config("spark.sql.warehouse.dir", "file:///C:/temp/spark-warehouse") \
             .config("spark.sql.streaming.checkpointLocation", "file:///C:/temp/spark-checkpoints") \
             .config("spark.hadoop.io.native.lib.available", "false") \

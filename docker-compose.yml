@@ -48,10 +48,16 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
+    user: "0"
     ports:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_DATABASE_TYPE=postgres
+      - GF_DATABASE_HOST=postgres:5432
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=bi_user
+      - GF_DATABASE_PASSWORD=bi_password
     networks:
       - data-pipeline-network
     depends_on:
