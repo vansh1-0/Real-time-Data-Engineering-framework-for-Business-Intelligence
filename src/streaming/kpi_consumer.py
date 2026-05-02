@@ -36,11 +36,16 @@ WINDOW_SIZE_MINUTES = 5
 WATERMARK_MINUTES = 2
 
 TABLE_COLS = [
-    ("symbol", 8),
-    ("window_start", 25),
-    ("window_end", 25),
-    ("avg_close", 12),
-    ("total_volume", 14)
+    ("symbol",          8),
+    ("window_start",   25),
+    ("window_end",     25),
+    ("avg_close",      12),
+    ("min_close",      12),
+    ("max_close",      12),
+    ("vwap",           12),
+    ("price_vol",      12),
+    ("total_volume",   14),
+    ("trade_count",    13),
 ]
 
 
@@ -115,36 +120,61 @@ def create_db_connection():
 
 
 def init_kpi_table(conn):
-    """Create KPI table if it does not exist."""
+    """Create KPI table if it does not exist (with all README columns)."""
     create_sql = """
     CREATE TABLE IF NOT EXISTS kpi_market_prices (
-        symbol TEXT NOT NULL,
-        window_start TIMESTAMPTZ NOT NULL,
-        window_end TIMESTAMPTZ NOT NULL,
-        avg_close DOUBLE PRECISION NOT NULL,
-        total_volume BIGINT NOT NULL,
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        symbol          TEXT              NOT NULL,
+        window_start    TIMESTAMPTZ       NOT NULL,
+        window_end      TIMESTAMPTZ       NOT NULL,
+        avg_close       DOUBLE PRECISION  NOT NULL,
+        min_close       DOUBLE PRECISION  NOT NULL,
+        max_close       DOUBLE PRECISION  NOT NULL,
+        vwap            DOUBLE PRECISION  NOT NULL,
+        price_volatility DOUBLE PRECISION NOT NULL,
+        total_volume    BIGINT            NOT NULL,
+        trade_count     INTEGER           NOT NULL,
+        updated_at      TIMESTAMPTZ       NOT NULL DEFAULT NOW(),
         PRIMARY KEY (symbol, window_start, window_end)
     );
+    -- Add missing columns if table was created with an older schema
+    ALTER TABLE kpi_market_prices ADD COLUMN IF NOT EXISTS min_close        DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE kpi_market_prices ADD COLUMN IF NOT EXISTS max_close        DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE kpi_market_prices ADD COLUMN IF NOT EXISTS vwap             DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE kpi_market_prices ADD COLUMN IF NOT EXISTS price_volatility DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE kpi_market_prices ADD COLUMN IF NOT EXISTS trade_count      INTEGER          NOT NULL DEFAULT 0;
     """
     with conn.cursor() as cur:
         cur.execute(create_sql)
-    logger.info("Ensured KPI table exists: kpi_market_prices")
+    logger.info("Ensured KPI table exists: kpi_market_prices (all 11 columns)")
 
 
-def upsert_kpi(conn, symbol, window_start, window_end, avg_close, total_volume):
-    """Upsert KPI row for the given window."""
+def upsert_kpi(conn, symbol, window_start, window_end,
+               avg_close, min_close, max_close, vwap,
+               price_volatility, total_volume, trade_count):
+    """Upsert KPI row for the given window (all README columns)."""
     upsert_sql = """
-    INSERT INTO kpi_market_prices (symbol, window_start, window_end, avg_close, total_volume)
-    VALUES (%s, %s, %s, %s, %s)
+    INSERT INTO kpi_market_prices
+        (symbol, window_start, window_end,
+         avg_close, min_close, max_close, vwap,
+         price_volatility, total_volume, trade_count)
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (symbol, window_start, window_end)
     DO UPDATE SET
-        avg_close = EXCLUDED.avg_close,
-        total_volume = EXCLUDED.total_volume,
-        updated_at = NOW();
+        avg_close        = EXCLUDED.avg_close,
+        min_close        = EXCLUDED.min_close,
+        max_close        = EXCLUDED.max_close,
+        vwap             = EXCLUDED.vwap,
+        price_volatility = EXCLUDED.price_volatility,
+        total_volume     = EXCLUDED.total_volume,
+        trade_count      = EXCLUDED.trade_count,
+        updated_at       = NOW();
     """
     with conn.cursor() as cur:
-        cur.execute(upsert_sql, (symbol, window_start, window_end, avg_close, total_volume))
+        cur.execute(upsert_sql, (
+            symbol, window_start, window_end,
+            avg_close, min_close, max_close, vwap,
+            price_volatility, total_volume, trade_count
+        ))
 
 
 def main():
@@ -156,8 +186,15 @@ def main():
     conn = create_db_connection()
     init_kpi_table(conn)
 
-    # Aggregates: {symbol: {window_start: {sum_close, count, total_volume}}}
-    aggregates = defaultdict(lambda: defaultdict(lambda: {"sum_close": 0.0, "count": 0, "total_volume": 0}))
+    # Aggregates: {symbol: {window_start: {sum_close, sum_vol_price, min_close, max_close, count, total_volume}}}
+    aggregates = defaultdict(lambda: defaultdict(lambda: {
+        "sum_close":     0.0,
+        "sum_vol_price": 0.0,   # for VWAP = sum(close * volume) / sum(volume)
+        "min_close":     float('inf'),
+        "max_close":     float('-inf'),
+        "count":         0,
+        "total_volume":  0,
+    }))
     max_event_time = None
 
     try:
@@ -180,18 +217,26 @@ def main():
                         # Drop late data beyond watermark
                         continue
 
-                    symbol = data.get("symbol")
-                    close_val = float(data.get("close", 0.0))
+                    symbol     = data.get("symbol")
+                    close_val  = float(data.get("close", 0.0))
                     volume_val = int(data.get("volume", 0))
 
                     win_start = window_start_for(ts)
                     agg = aggregates[symbol][win_start]
-                    agg["sum_close"] += close_val
-                    agg["count"] += 1
-                    agg["total_volume"] += volume_val
+                    agg["sum_close"]     += close_val
+                    agg["sum_vol_price"] += close_val * volume_val
+                    agg["min_close"]      = min(agg["min_close"], close_val)
+                    agg["max_close"]      = max(agg["max_close"], close_val)
+                    agg["count"]         += 1
+                    agg["total_volume"]  += volume_val
 
-                    avg_close = agg["sum_close"] / agg["count"] if agg["count"] else 0.0
-                    win_end = window_end_for(win_start)
+                    count        = agg["count"]
+                    avg_close    = agg["sum_close"] / count if count else 0.0
+                    min_close    = agg["min_close"] if agg["min_close"] != float('inf')  else 0.0
+                    max_close    = agg["max_close"] if agg["max_close"] != float('-inf') else 0.0
+                    vwap         = agg["sum_vol_price"] / agg["total_volume"] if agg["total_volume"] else avg_close
+                    price_vol    = max_close - min_close
+                    win_end      = window_end_for(win_start)
 
                     logger.info(
                         format_row([
@@ -199,11 +244,18 @@ def main():
                             win_start.isoformat(),
                             win_end.isoformat(),
                             f"{avg_close:.2f}",
-                            agg["total_volume"]
+                            f"{min_close:.2f}",
+                            f"{max_close:.2f}",
+                            f"{vwap:.2f}",
+                            f"{price_vol:.2f}",
+                            agg["total_volume"],
+                            count,
                         ])
                     )
 
-                    upsert_kpi(conn, symbol, win_start, win_end, avg_close, agg["total_volume"])
+                    upsert_kpi(conn, symbol, win_start, win_end,
+                               avg_close, min_close, max_close, vwap,
+                               price_vol, agg["total_volume"], count)
 
             # Cleanup old windows beyond watermark
             if max_event_time is not None:

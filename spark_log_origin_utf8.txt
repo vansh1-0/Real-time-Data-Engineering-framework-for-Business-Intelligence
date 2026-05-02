@@ -1,0 +1,180 @@
+﻿.\.venv\Scripts\python : 
+2026-03-19 17:16:51,961 - 
+__main__ - INFO - =========
+===========================
+===========================
+=======
+At line:1 char:1
++ .\.venv\Scripts\python sr
+c/streaming/spark_streaming
+.py > spark_log_o ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+    + CategoryInfo         
+     : NotSpecified    : 
+(2026-03-19 17:1.    
+..===============:S    
+tring) [], RemoteEx    
+ception
+    + FullyQualifiedErr    
+orId : NativeComman    
+dError
+ 
+2026-03-19 17:16:51,961 - 
+__main__ - INFO - Starting 
+Spark Structured Streaming 
+- Market Data Processor
+2026-03-19 17:16:51,961 - 
+__main__ - INFO - =========
+===========================
+===========================
+=======
+WARNING: Using incubator 
+modules: 
+jdk.incubator.vector
+:: loading settings :: url 
+= jar:file:/E:/College/Sem%
+206/SGP/Real-time-Data-Engi
+neering-framework-for-Busin
+ess-Intelligence/.venv/Lib/
+site-packages/pyspark/jars/
+ivy-2.5.3.jar!/org/apache/i
+vy/core/settings/ivysetting
+s.xml
+Ivy Default Cache set to: C
+:\Users\Dax\.ivy2.5.2\cache
+The jars for the packages 
+stored in: 
+C:\Users\Dax\.ivy2.5.2\jars
+org.apache.spark#spark-sql-
+kafka-0-10_2.13 added as a 
+dependency
+:: resolving dependencies 
+:: org.apache.spark#spark-s
+ubmit-parent-f670a918-95c4-
+4e09-9d0a-ac9c3877b8f9;1.0
+	confs: [default]
+	found org.apache.spark#spa
+rk-sql-kafka-0-10_2.13;4.0.
+0 in central
+	found org.apache.spark#spa
+rk-token-provider-kafka-0-1
+0_2.13;4.0.0 in central
+	found org.apache.kafka#kaf
+ka-clients;3.9.0 in central
+	found 
+org.lz4#lz4-java;1.8.0 in 
+central
+	found org.xerial.snappy#sn
+appy-java;1.1.10.7 in 
+central
+	found 
+org.slf4j#slf4j-api;2.0.16 
+in central
+	found org.apache.hadoop#ha
+doop-client-runtime;3.4.1 
+in central
+	found org.apache.hadoop#ha
+doop-client-api;3.4.1 in 
+central
+	found com.google.code.find
+bugs#jsr305;3.0.0 in 
+central
+	found org.scala-lang.modul
+es#scala-parallel-collectio
+ns_2.13;1.2.0 in central
+	found org.apache.commons#c
+ommons-pool2;2.12.0 in 
+central
+:: resolution report :: 
+resolve 991ms :: artifacts 
+dl 47ms
+	:: modules in use:
+	com.google.code.findbugs#j
+sr305;3.0.0 from central 
+in [default]
+	org.apache.commons#commons
+-pool2;2.12.0 from central 
+in [default]
+	org.apache.hadoop#hadoop-c
+lient-api;3.4.1 from 
+central in [default]
+	org.apache.hadoop#hadoop-c
+lient-runtime;3.4.1 from 
+central in [default]
+	org.apache.kafka#kafka-cli
+ents;3.9.0 from central in 
+[default]
+	org.apache.spark#spark-sql
+-kafka-0-10_2.13;4.0.0 
+from central in [default]
+	org.apache.spark#spark-tok
+en-provider-kafka-0-10_2.13
+;4.0.0 from central in 
+[default]
+	org.lz4#lz4-java;1.8.0 
+from central in [default]
+	org.scala-lang.modules#sca
+la-parallel-collections_2.1
+3;1.2.0 from central in 
+[default]
+	
+org.slf4j#slf4j-api;2.0.16 
+from central in [default]
+	org.xerial.snappy#snappy-j
+ava;1.1.10.7 from central 
+in [default]
+	--------------------------
+---------------------------
+----------------
+	|                  |      
+      modules            
+||   artifacts   |
+	|       conf       | 
+number| 
+search|dwnlded|evicted|| 
+number|dwnlded|
+	--------------------------
+---------------------------
+----------------
+	|      default     |   11 
+ |   0   |   0   |   0   
+||   11  |   0   |
+	--------------------------
+---------------------------
+----------------
+:: retrieving :: org.apache
+.spark#spark-submit-parent-
+f670a918-95c4-4e09-9d0a-ac9
+c3877b8f9
+	confs: [default]
+	0 artifacts copied, 11 
+already retrieved 
+(0kB/41ms)
+26/03/19 17:16:58 WARN 
+NativeCodeLoader: Unable 
+to load native-hadoop 
+library for your 
+platform... using 
+builtin-java classes where 
+applicable
+Using Spark's default 
+log4j profile: org/apache/s
+park/log4j2-defaults.proper
+ties
+Setting default log level 
+to "WARN".
+To adjust logging level 
+use 
+sc.setLogLevel(newLevel). 
+For SparkR, use 
+setLogLevel(newLevel).
+26/03/19 17:17:00 WARN 
+Utils: The configured 
+local directories are not 
+expected to be URIs; 
+however, got suspicious 
+values [C:/temp]. Please 
+check your configured 
+local directories.

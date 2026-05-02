@@ -9,6 +9,7 @@ import time
 import logging
 from datetime import datetime
 from dotenv import load_dotenv
+import pandas as pd
 import yfinance as yf
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
@@ -57,7 +58,12 @@ def fetch_stock_data(symbol):
         if data.empty:
             logger.warning(f"No data fetched for {symbol}")
             return None
-        
+
+        # yfinance >= 0.2.x returns MultiIndex columns like ('Open', 'AAPL').
+        # Flatten to simple column names so that 'Open', 'Close', etc. work correctly.
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = data.columns.get_level_values(0)
+
         # Get the most recent data point
         latest = data.iloc[-1]
         
